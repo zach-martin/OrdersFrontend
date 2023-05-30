@@ -31,7 +31,6 @@ import { makeStyles } from "@mui/styles";
 import SettingsIcon from "@mui/icons-material/Settings";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import { SvgIcon } from "@mui/material";
-import { border, borderRadius, margin, padding } from "@mui/system";
 import { styled, alpha } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
 import InputBase from "@mui/material/InputBase";
@@ -39,9 +38,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import Checkbox from "@mui/material/Checkbox/Checkbox";
 import AddIcon from "@mui/icons-material/Add";
 import { grey } from "@mui/material/colors";
-import { DataGrid, GridColDef, GridValueGetterParams } from "@mui/x-data-grid";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { GridRowSelectionModel } from "@mui/x-data-grid";
-import ClickAwayListener from "@mui/material/ClickAwayListener";
 
 declare module "@mui/material/styles" {
 	interface Palette {
@@ -244,6 +242,7 @@ const App = () => {
 				});
 
 				if (response.ok) {
+					setRefreshState(true);
 					return response;
 				}
 			} catch (e) {
@@ -251,7 +250,6 @@ const App = () => {
 			}
 		};
 		newOrder();
-		setRefreshState(true);
 		setCreateOrder({
 			createdByUsername: "",
 			orderType: OrderType.Standard,
@@ -271,6 +269,7 @@ const App = () => {
 				});
 
 				if (response.ok) {
+					setRefreshState(true);
 					return response;
 				}
 			} catch (e) {
@@ -278,7 +277,6 @@ const App = () => {
 			}
 		};
 		deleteOrders();
-		setRefreshState(true);
 	};
 
 	const handleFilters = () => {
@@ -595,7 +593,11 @@ const App = () => {
 								paddingLeft: 4,
 							},
 						}}
-						rows={ordersDisplayed}
+						rows={ordersDisplayed.map((o) => ({
+							...o,
+							orderType: orderTypes.find((ot) => ot.value === o.orderType)
+								?.label,
+						}))}
 						columns={columns}
 						initialState={{
 							pagination: {
