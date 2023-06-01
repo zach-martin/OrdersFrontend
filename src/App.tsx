@@ -14,22 +14,22 @@ import {
 	MenuItem,
 	ListItemText,
 	OutlinedInput,
-	useMediaQuery,
-	SvgIconTypeMap,
 	SvgIconProps,
 	Box,
 	Dialog,
 	DialogTitle,
-	Input,
-	FormLabel,
 	TextField,
 	DialogActions,
+	useMediaQuery,
 } from "@mui/material";
+import SaveIcon from "@mui/icons-material/Save";
+import CancelIcon from "@mui/icons-material/Close";
 import { SelectChangeEvent } from "@mui/material/Select";
 import { createTheme, Theme, ThemeProvider } from "@mui/material";
 import { makeStyles } from "@mui/styles";
 import SettingsIcon from "@mui/icons-material/Settings";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import EditIcon from "@mui/icons-material/Edit";
 import { SvgIcon } from "@mui/material";
 import { styled, alpha } from "@mui/material/styles";
 import SearchIcon from "@mui/icons-material/Search";
@@ -38,8 +38,27 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import Checkbox from "@mui/material/Checkbox/Checkbox";
 import AddIcon from "@mui/icons-material/Add";
 import { grey } from "@mui/material/colors";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import {
+	DataGrid,
+	GridRow,
+	renderEditInputCell,
+	GridRenderCellParams,
+	GridColDef,
+	useGridApiContext,
+	GridActionsCellItem,
+	GridEventListener,
+	GridRowId,
+	GridRowModel,
+	GridRowsProp,
+	GridRowModesModel,
+	GridRowModes,
+	GridRowParams,
+	MuiEvent,
+} from "@mui/x-data-grid";
 import { GridRowSelectionModel } from "@mui/x-data-grid";
+import AppBarComponent from "./Components/AppBarComponent";
+import DataGridComponent from "./Components/DataGridComponent";
+import { textAlign } from "@mui/system";
 
 declare module "@mui/material/styles" {
 	interface Palette {
@@ -49,6 +68,7 @@ declare module "@mui/material/styles" {
 		neutral: PaletteOptions["primary"];
 	}
 }
+
 const theme = createTheme({
 	palette: {
 		background: {
@@ -124,49 +144,6 @@ const orderTypes: FriendlyFilter<OrderType>[] = Object.values(OrderType).map(
 		value: t,
 	})
 );
-
-const columns: GridColDef[] = [
-	{
-		field: "id",
-		headerName: "Order ID",
-		width: 200,
-		headerClassName: "column-theme",
-		cellClassName: "column-theme",
-		disableColumnMenu: true,
-	},
-	{
-		field: "createdDate",
-		headerName: "Creation Date",
-		width: 300,
-		headerClassName: "column-theme",
-		cellClassName: "column-theme",
-		disableColumnMenu: true,
-	},
-	{
-		field: "createdByUsername",
-		headerName: "Created By",
-		width: 200,
-		headerClassName: "column-theme",
-		cellClassName: "column-theme",
-		disableColumnMenu: true,
-	},
-	{
-		field: "orderType",
-		headerName: "Order Type",
-		width: 200,
-		headerClassName: "column-theme",
-		cellClassName: "column-theme",
-		disableColumnMenu: true,
-	},
-	{
-		field: "customerName",
-		headerName: "Customer",
-		width: 200,
-		headerClassName: "column-theme",
-		cellClassName: "column-theme",
-		disableColumnMenu: true,
-	},
-];
 
 type OrderForm = {
 	createdByUsername: string;
@@ -257,6 +234,8 @@ const App = () => {
 		});
 	};
 
+	const isSmall = useMediaQuery(theme.breakpoints.down(310));
+
 	const handleDeleteOrders = () => {
 		const deleteOrders = async () => {
 			try {
@@ -340,36 +319,7 @@ const App = () => {
 	return (
 		<>
 			<CssBaseline>
-				<AppBar position="relative">
-					<Toolbar className={classes.toolbar}>
-						<div className={classes.container}>
-							<RedTechLogo
-								style={{
-									marginRight: 6,
-									height: 30,
-									width: "auto",
-								}}
-							/>
-							<Typography
-								color={theme.palette.text.primary}
-								align="center"
-								variant="h6"
-							>
-								Home
-							</Typography>
-						</div>
-						<div>
-							<SettingsIcon
-								className={classes.toolbarButtons}
-								color="neutral"
-							/>
-							<AccountCircleIcon
-								className={classes.toolbarButtons}
-								color="neutral"
-							/>
-						</div>
-					</Toolbar>
-				</AppBar>
+				<AppBarComponent />
 				<main className={classes.mainContainer}>
 					<Grid
 						container
@@ -387,6 +337,12 @@ const App = () => {
 								alignItems: "center",
 								justifyItems: "center",
 								justifyContent: "space-between",
+
+								[theme.breakpoints.down("md")]: {
+									//allows for the use of theme wihtout importing it
+									ml: 2,
+									mr: 2,
+								},
 							})}
 						>
 							<Grid
@@ -394,6 +350,11 @@ const App = () => {
 								md="auto"
 								sx={{
 									flexGrow: 1,
+
+									[theme.breakpoints.down(309)]: {
+										flexGrow: 0,
+										flexShrink: 1,
+									},
 								}}
 							>
 								<Search>
@@ -412,20 +373,7 @@ const App = () => {
 								</Search>
 							</Grid>
 
-							{/*!useMediaQuery(theme.breakpoints.down("md")) ? (
-								<Grid item xs={2} sm="auto">
-									<Search>
-										<StyledInputBase
-											placeholder="Customer Search…"
-											inputProps={{ "aria-label": "search" }}
-										/>
-									</Search>
-								</Grid>
-							) : (
-								""
-							)*/}
-
-							<Grid item md="auto" xs="auto">
+							<Grid item md="auto">
 								<Button
 									onClick={handleFilters}
 									variant="contained"
@@ -439,7 +387,18 @@ const App = () => {
 								</Button>
 							</Grid>
 						</Grid>
-						<Grid item xs={12} md="auto">
+						<Grid
+							item
+							xs={12}
+							md="auto"
+							sx={{
+								[theme.breakpoints.down("md")]: {
+									//allows for the use of theme wihtout importing it
+									ml: 2,
+									mr: 2,
+								},
+							}}
+						>
 							<Button
 								variant="contained"
 								color="primary"
@@ -520,7 +479,18 @@ const App = () => {
 							</Dialog>
 						</Grid>
 
-						<Grid item xs={12} md="auto">
+						<Grid
+							item
+							xs={12}
+							md="auto"
+							sx={{
+								[theme.breakpoints.down("md")]: {
+									//allows for the use of theme wihtout importing it
+									ml: 2,
+									mr: 2,
+								},
+							}}
+						>
 							<Button
 								variant="contained"
 								color="primary"
@@ -536,7 +506,18 @@ const App = () => {
 								DELETE SELECTED
 							</Button>
 						</Grid>
-						<Grid item xs={12} md="auto">
+						<Grid
+							item
+							xs={12}
+							md="auto"
+							sx={{
+								[theme.breakpoints.down("md")]: {
+									//allows for the use of theme wihtout importing it
+									ml: 2,
+									mr: 2,
+								},
+							}}
+						>
 							<FormControl
 								sx={{
 									height: "auto",
@@ -551,10 +532,9 @@ const App = () => {
 									},
 								}}
 							>
-								<InputLabel size="normal" id="order-type-label">
-									Order Type
-								</InputLabel>
+								<InputLabel size="small">Order Type</InputLabel>
 								<Select
+									sx={{ height: "36px" }}
 									onClose={handleFilters}
 									labelId="order-type-label"
 									id="order-checkbox"
@@ -584,37 +564,12 @@ const App = () => {
 						</Grid>
 					</Grid>
 				</main>
-
-				<Box sx={{ height: 400, width: "100%" }}>
-					<DataGrid
-						sx={{
-							m: 2,
-							"& .column-theme": {
-								paddingLeft: 4,
-							},
-						}}
-						rows={ordersDisplayed.map((o) => ({
-							...o,
-							orderType: orderTypes.find((ot) => ot.value === o.orderType)
-								?.label,
-						}))}
-						columns={columns}
-						initialState={{
-							pagination: {
-								paginationModel: {
-									pageSize: 5,
-								},
-							},
-						}}
-						pageSizeOptions={[5]}
-						checkboxSelection
-						disableRowSelectionOnClick
-						rowSelectionModel={rowSelectionModel}
-						onRowSelectionModelChange={(newRowSelectionModel) => {
-							setRowSelectionModel(newRowSelectionModel);
-						}}
-					/>
-				</Box>
+				{DataGridComponent(
+					ordersDisplayed,
+					setOrdersDisplayed,
+					rowSelectionModel,
+					setRowSelectionModel
+				)}
 			</CssBaseline>
 		</>
 	);
