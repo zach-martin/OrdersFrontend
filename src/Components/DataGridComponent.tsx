@@ -57,41 +57,50 @@ import {
 import { GridRowSelectionModel } from "@mui/x-data-grid";
 import { Orders, orderTypes, Setter } from "../Models";
 
-const DataGridComponent = (
-	ordersDisplayed: Orders[],
-	setOrdersDisplayed: Setter<Orders[]>,
-	rowSelectionModel: GridRowSelectionModel,
-	setRowSelectionModel: Setter<GridRowSelectionModel>
-) => {
-	function SelectEditInputCell(props: GridRenderCellParams) {
-		const { id, value, field } = props;
-		const apiRef = useGridApiContext();
+function SelectEditInputCell(props: GridRenderCellParams) {
+	const apiRef = useGridApiContext();
+	const { id, value, field } = props;
 
-		return (
-			<TextField
-				value={convertLabelToEnum(value)}
-				select
-				sx={{ width: "100%" }}
-				onChange={(event) => {
-					apiRef.current.setEditCellValue({
-						id,
-						field,
-						value: convertLabelToEnum(event.target.value),
-					});
-				}}
-			>
-				{orderTypes.map((type) => (
-					<MenuItem key={type.value} value={type.value}>
-						<ListItemText primary={type.label} />
-					</MenuItem>
-				))}
-			</TextField>
-		);
-	}
+	return (
+		<TextField
+			value={convertLabelToEnum(value)}
+			select
+			sx={{ width: "100%" }}
+			onChange={(event) => {
+				apiRef.current.setEditCellValue({
+					id,
+					field,
+					value: convertLabelToEnum(event.target.value),
+				});
+			}}
+		>
+			{orderTypes.map((type) => (
+				<MenuItem key={type.value} value={type.value}>
+					<ListItemText primary={type.label} />
+				</MenuItem>
+			))}
+		</TextField>
+	);
+}
 
-	function convertLabelToEnum(s: string | undefined) {
-		return s?.replace(" ", "") ?? "";
-	}
+function convertLabelToEnum(s: string | undefined) {
+	return s?.replace(" ", "") ?? "";
+}
+
+const DataGridComponent = (props: {
+	ordersDisplayed: Orders[];
+	setOrdersDisplayed: Setter<Orders[]>;
+	rowSelectionModel: GridRowSelectionModel;
+	setRowSelectionModel: Setter<GridRowSelectionModel>;
+	processRowUpdate: (newRow: GridRowModel) => Orders;
+}) => {
+	const {
+		ordersDisplayed,
+		setOrdersDisplayed,
+		rowSelectionModel,
+		setRowSelectionModel,
+		processRowUpdate,
+	} = props;
 
 	const renderSelectEditInputCell: GridColDef["renderCell"] = (params) => {
 		return <SelectEditInputCell {...params} />;
@@ -128,35 +137,6 @@ const DataGridComponent = (
 			...rowModesModel,
 			[id]: { mode: GridRowModes.View, ignoreModifications: true },
 		});
-	};
-
-	const processRowUpdate = (newRow: GridRowModel) => {
-		const updateOrder = async () => {
-			try {
-				const response = await fetch("https://localhost:7066/update-order", {
-					method: "post",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(newRow),
-				});
-
-				if (response.ok) {
-					const data = await response;
-				}
-			} catch (e) {
-				console.log(e);
-			}
-		};
-
-		updateOrder();
-		newRow.orderType = convertLabelToEnum(newRow.orderType);
-
-		const updatedRow = newRow as Orders;
-		setOrdersDisplayed(
-			ordersDisplayed.map((row) => (row.id === newRow.id ? updatedRow : row))
-		);
-		return updatedRow;
 	};
 
 	const handleRowModesModelChange = (newRowModesModel: GridRowModesModel) => {

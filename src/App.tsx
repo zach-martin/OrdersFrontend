@@ -21,6 +21,7 @@ import {
 	TextField,
 	DialogActions,
 	useMediaQuery,
+	CircularProgress,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Close";
@@ -164,8 +165,14 @@ interface OrderFilters {
 	orderTypes: OrderType[];
 }
 
+function convertLabelToEnum(s: string | undefined) {
+	return s?.replace(" ", "") ?? "";
+}
+
 const App = () => {
 	const classes = useStyles();
+
+	const [loading, setLoading] = useState<Boolean>(true);
 	const [refreshState, setRefreshState] = useState<Boolean>(false);
 	const [ordersDisplayed, setOrdersDisplayed] = useState<Orders[]>([]);
 
@@ -210,13 +217,16 @@ const App = () => {
 
 		const newOrder = async () => {
 			try {
-				const response = await fetch("https://localhost:7066/create-order", {
-					method: "post",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(createOrder),
-				});
+				const response = await fetch(
+					"https://orderssite20230602150450.azurewebsites.net/create-order",
+					{
+						method: "post",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify(createOrder),
+					}
+				);
 
 				if (response.ok) {
 					setRefreshState(true);
@@ -234,18 +244,19 @@ const App = () => {
 		});
 	};
 
-	const isSmall = useMediaQuery(theme.breakpoints.down(310));
-
 	const handleDeleteOrders = () => {
 		const deleteOrders = async () => {
 			try {
-				const response = await fetch("https://localhost:7066/delete-orders", {
-					method: "delete",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(rowSelectionModel),
-				});
+				const response = await fetch(
+					"https://orderssite20230602150450.azurewebsites.net/delete-orders",
+					{
+						method: "delete",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify(rowSelectionModel),
+					}
+				);
 
 				if (response.ok) {
 					setRefreshState(true);
@@ -262,13 +273,16 @@ const App = () => {
 		const filterOrders = async () => {
 			try {
 				console.log(orderFilters);
-				const response = await fetch("https://localhost:7066/search-order", {
-					method: "post",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(orderFilters),
-				});
+				const response = await fetch(
+					"https://orderssite20230602150450.azurewebsites.net/search-order",
+					{
+						method: "post",
+						headers: {
+							"Content-Type": "application/json",
+						},
+						body: JSON.stringify(orderFilters),
+					}
+				);
 
 				if (response.ok) {
 					const data = await response.json();
@@ -281,31 +295,55 @@ const App = () => {
 		filterOrders();
 	};
 
-	useEffect(() => {
-		const fetchOrders = async () => {
+	const processRowUpdate = (newRow: GridRowModel) => {
+		const updateOrder = async () => {
 			try {
-				/*const { data, status } = await axios.get<Orders>(
-					"https://localhost:7066/read-order/11",
+				const response = await fetch(
+					"https://orderssite20230602150450.azurewebsites.net/update-order",
 					{
+						method: "post",
 						headers: {
-							Accept: "application/json",
+							"Content-Type": "application/json",
 						},
+						body: JSON.stringify(newRow),
 					}
 				);
-				console.log(data);
-				if (status == 200) {
-					setOrdersDisplayed([data]);
-				}
 
-				Doing fetching with axios
-				*/
-				const orders = await fetch("https://localhost:7066/read-orders");
-				if (orders.ok) {
-					const data = await orders.json();
-					setOrdersDisplayed(data as Orders[]);
+				if (response.ok) {
+					const data = await response;
 				}
 			} catch (e) {
 				console.log(e);
+			}
+		};
+		if (newRow.customerName != "") {
+			updateOrder();
+			newRow.orderType = convertLabelToEnum(newRow.orderType);
+
+			const updatedRow = newRow as Orders;
+			setOrdersDisplayed(
+				ordersDisplayed.map((row) => (row.id === newRow.id ? updatedRow : row))
+			);
+			return updatedRow;
+		}
+		const row = ordersDisplayed.find((row) => (row.id = newRow.id));
+		return row;
+	};
+
+	useEffect(() => {
+		const fetchOrders = async () => {
+			try {
+				const orders = await fetch(
+					"https://orderssite20230602150450.azurewebsites.net/read-orders"
+				);
+				if (orders.ok) {
+					const data = await orders.json();
+					setOrdersDisplayed(data as Orders[]);
+					setLoading(false);
+				}
+			} catch (e) {
+				console.log(e);
+				setLoading(false);
 			}
 		};
 
@@ -472,7 +510,14 @@ const App = () => {
 									<Button variant="outlined" onClick={handleCloseCreate}>
 										Cancel
 									</Button>
-									<Button variant="contained" onClick={handleSubmitCreate}>
+									<Button
+										variant="contained"
+										disabled={
+											createOrder.customerName == "" ||
+											createOrder.createdByUsername == ""
+										}
+										onClick={handleSubmitCreate}
+									>
 										Submit
 									</Button>
 								</DialogActions>
@@ -564,11 +609,18 @@ const App = () => {
 						</Grid>
 					</Grid>
 				</main>
-				{DataGridComponent(
-					ordersDisplayed,
-					setOrdersDisplayed,
-					rowSelectionModel,
-					setRowSelectionModel
+				{!loading ? (
+					<DataGridComponent
+						ordersDisplayed={ordersDisplayed}
+						setOrdersDisplayed={setOrdersDisplayed}
+						rowSelectionModel={rowSelectionModel}
+						setRowSelectionModel={setRowSelectionModel}
+						processRowUpdate={processRowUpdate}
+					/>
+				) : (
+					<Box sx={{ display: "flex", justifyContent: "center", padding: 20 }}>
+						<CircularProgress size="7em" />
+					</Box>
 				)}
 			</CssBaseline>
 		</>
